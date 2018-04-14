@@ -8,9 +8,14 @@ import (
 )
 
 type ECManifest struct {
-	ReqId       int      `json:"reqId"`
-	Title       string   `json:"title"`
-	Command     []string `json:"command"`
+
+	ReqId    int    	`json:"reqId"`
+	Title    string 	`json:"title"`
+	Command  []string	`json:"command"`
+	Baseline string 	`json:"baseline"`
+	CommandType string 	`json:"commandType"`
+	TargetUrl string	`json:"targetUrl"`
+	DestinationPath string	`json:"destinationPath"`
 	BaselineUid string   `json:"baseline"`
 	ControlUid  string   `json:"control"`
 }

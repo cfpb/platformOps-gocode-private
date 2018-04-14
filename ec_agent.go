@@ -15,6 +15,7 @@ import (
 	"platformOps-EC/models"
 	"platformOps-EC/services"
 	"strings"
+	"github.com/BurntSushi/toml"
 )
 
 /*
@@ -48,23 +49,52 @@ func getECManifest(manifest string) []models.ECManifest {
 	return c
 }
 
+
 func getJsonManifestFromMaster(url string) []models.ECManifest {
 
 	return services.GetManifestFromMaster(url)
+}
+func loadConfig(configFile string) map[string]string {
+	fmt.Printf("- Loading configs [%v]\n", configFile)
+
+	var config map[string]string
+	_, err := os.Stat(configFile)
+	if err != nil {
+		log.Fatal("Error loading the config: ", configFile)
+		fmt.Printf("Error loading the config: %s/n ", configFile)
+		os.Exit(1)
+	}
+
+	if _, err := toml.DecodeFile(configFile, &config); err != nil {
+		log.Fatal(err)
+	}
+
+	for k, v := range config {
+
+		os.Setenv(k, v)
+	}
+	return config
+
 }
 
 func CollectEvidence(baseline []models.ECManifest) []models.ECResult {
 
 	var ecResults []models.ECResult
 	for _, manifest := range baseline {
-		var errorOutputs, resultOutputs []string
+		var errorOutputs, resultOutputs, data []string
+		//process screenshot command
 
-		data := manifest.Command
+		if manifest.CommandType == "screenshot" {
+			command := fmt.Sprintf("gowitness single -u %v -d %v", manifest.TargetUrl, manifest.DestinationPath)
+			data=append(data, command)
+		} else {
+			data = manifest.Command
+		}
 		if len(data) > 0 {
 			fmt.Printf("- Executing [%v]\n", manifest.Title)
+			fmt.Println(data)
 			for c := range data {
 				var b bytes.Buffer
-
 				result := strings.Split(data[c], "|")
 				array := make([]*exec.Cmd, len(result))
 				for i := range result {
@@ -74,19 +104,17 @@ func CollectEvidence(baseline []models.ECManifest) []models.ECResult {
 					services.WrapperCliVarsToEnvVars(args)
 					array[i] = exec.Command(commands[0], args...)
 				}
-
 				errorOutput := services.Execute(&b, array)
-
 				resultOutputs = append(resultOutputs, b.String())
-
 				if errorOutput != "" {
 					errorOutputs = append(errorOutputs, errorOutput)
 				}
 			}
-
 		}
 		resultManifest := models.ECResult{
-			models.ECManifest{manifest.ReqId, manifest.Title, manifest.Command, manifest.BaselineUid, manifest.ControlUid},
+
+			models.ECManifest{manifest.ReqId, manifest.Title, manifest.Command,"","","",  manifest.Baseline, "",""},
+
 			services.GetHostNameExec(),
 			resultOutputs,
 			errorOutputs,
@@ -168,6 +196,7 @@ func main() {
 	flag.Parse()
 
 	env := services.LoadConfig(config)
+
 	defer func() {
 		os.Clearenv()
 		for k, _ := range env {

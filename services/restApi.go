@@ -2,7 +2,6 @@ package services
 
 import (
 	"bytes"
-	"ec/services"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -37,7 +36,7 @@ func SendResultToMaster(url string, ecResults []models.ECResult) string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	req.Header.Add("Date", services.DateTimeNow())
+	req.Header.Add("Date", DateTimeNow())
 	req.Header.Add("User-Agent", models.ECVersion)
 	resp, err := myClient.Do(req)
 	defer resp.Body.Close()
